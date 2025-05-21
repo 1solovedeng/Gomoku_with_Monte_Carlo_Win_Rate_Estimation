@@ -2,7 +2,7 @@
 
 源项目：[https://github.com/lxie27/Gomoku](https://github.com/lxie27/Gomoku)
 
-本项目在原始 SDLProject 的基础上，添加了“蒙特卡洛随机模拟”胜率估算功能。每次玩家落子后，程序随机模拟 500 局并统计黑白双方胜率，在终端打印输出结果。
+本项目在原始 Gomoku-Master 的基础上，添加了“蒙特卡洛随机模拟”胜率估算功能。每次玩家落子后，程序随机模拟 500 局并统计黑白双方胜率，在终端打印输出结果。
 
 ---
 
@@ -14,7 +14,7 @@
   这一步后的蒙特卡洛模拟胜率: 黑: xx%, 白: yy%
   ```
 - **界面渲染**：基于 SDL2 绘制棋盘与棋子，不影响图形界面体验。
-
+![演示图](https://res.cloudinary.com/ddacx9czn/image/upload/v1747838315/2327929c-a670-4707-9e56-53537fe04d5e.png)
 ---
 
 ## 我的改动
@@ -23,6 +23,8 @@
 - 新增 `Board::simulateGames` 函数，实现纯随机模拟、胜率统计。  
 - 在 `Game::init` 中初始化随机种子 `srand(time(NULL))`。  
 - 终端输出黑白胜率，不影响 SDL 窗口显示。
+![演示图2](https://res.cloudinary.com/ddacx9czn/image/upload/v1747838388/6b2ac052-cebe-417a-81e1-f5605b3b0f6f.png)
+- 添加`CMake`部分，可以在不同操作系统上生成对应文件，方便编译。
 
 ---
 
