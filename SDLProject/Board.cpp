@@ -1,13 +1,13 @@
 #include "Board.h"
 #include <iostream>
-#include <cstdlib>   // 为 rand() 和 srand()
-#include <utility>   // 为 std::pair
+#include <cstdlib>   // rand, srand
+#include <ctime>     // time
+#include <limits>
 
 int GAME_W = 750;
 int GAME_H = 750;
 
 Board::Board() { }
-
 Board::~Board() { }
 
 Square Board::getWinner()
@@ -39,74 +39,67 @@ void Board::putPiece(int colIndex, int rowIndex)
 
 bool Board::attemptAdd(int mouseX, int mouseY)
 {
-    int xIndex = mouseX / 50;
-    int yIndex = mouseY / 50;
+    int x = mouseX / 50;
+    int y = mouseY / 50;
+    if (!isOpenSpot(x, y)) return false;
 
-    if (isOpenSpot(xIndex, yIndex))
+    putPiece(x, y);
+
+    // 检查是否即时胜出
+    if (informedWinState(x, y, getCurrentPlayer()) == EMPTY)
     {
-        addPiece(mouseX, mouseY);
+        // 切换到白方
+        switchPlayers();
 
-        if (informedWinState(xIndex, yIndex, getCurrentPlayer()) == EMPTY)
+        // 黑方刚下完后输出黑白胜率
+        auto [bWins, wWins] = simulateGames(500);
+        int total = bWins + wWins;
+        if (total > 0)
         {
-            // 切换玩家后进行模拟
-            switchPlayers();
-
-            // 模拟500局并输出胜率
-            auto results = simulateGames(500);
-            int blackWins = results.first;
-            int whiteWins = results.second;
-            int totalWins = blackWins + whiteWins;
-            if (totalWins > 0) {
-                int blackPct = static_cast<int>(100.0 * blackWins / totalWins);
-                int whitePct = static_cast<int>(100.0 * whiteWins / totalWins);
-                std::cout << "这一步后的蒙特卡洛模拟胜率: 黑: "
-                          << blackPct << "%, 白: " << whitePct << "%" << std::endl;
-            } else {
-                std::cout << "这一步后的蒙特卡洛模拟胜率: 黑: 0%, 白: 0%" << std::endl;
-            }
+            int bPct = static_cast<int>(100.0 * bWins / total);
+            int wPct = 100 - bPct;
+            std::cout << "这一步后的蒙特卡洛模拟胜率: "
+                      << "黑方: " << bPct << "%, 白方 : " << wPct << "%"
+                      << std::endl;
         }
-        else
-        {
-            winner = getCurrentPlayer();
-        }
-        return true;
     }
-    return false;
+    else
+    {
+        // 当前玩家胜出
+        winner = getCurrentPlayer();
+    }
+    return true;
 }
 
 void Board::addPiece(int mouseX, int mouseY)
 {
-    int xIndex = mouseX / 50;
-    int yIndex = mouseY / 50;
-    putPiece(xIndex, yIndex);
+    int x = mouseX / 50;
+    int y = mouseY / 50;
+    putPiece(x, y);
 }
 
 void Board::renderBoard(SDL_Renderer* renderer)
 {
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-
-    // 绘制棋盘网格
-    for (int i = 1; i < 15; i++)
+    for (int i = 1; i < 15; ++i)
     {
         SDL_RenderDrawLine(renderer, GAME_W/15*i, 0, GAME_W/15*i, GAME_H);
         SDL_RenderDrawLine(renderer, 0, GAME_H/15*i, GAME_W, GAME_H/15*i);
     }
-
-    // 绘制棋子
-    for (int i = 0; i < 15; i++)
+    for (int i = 0; i < 15; ++i)
     {
-        for (int j = 0; j < 15; j++)
+        for (int j = 0; j < 15; ++j)
         {
-            SDL_Rect rect = { GAME_W/15*i + 5, GAME_H/15*j + 5, GAME_W/15 - 10, GAME_H/15 - 10 };
+            SDL_Rect rect{ GAME_W/15*i + 5, GAME_H/15*j + 5, GAME_W/15 - 10, GAME_H/15 - 10 };
             if (boardState[i][j] == WHITE)
             {
-                SDL_SetRenderDrawColor(renderer, 255, 250, 250, 255);
+                SDL_SetRenderDrawColor(renderer, 255,250,250,255);
                 SDL_RenderFillRect(renderer, &rect);
             }
             else if (boardState[i][j] == BLACK)
             {
-                SDL_SetRenderDrawColor(renderer, 27, 30, 35, 255);
+                SDL_SetRenderDrawColor(renderer, 27,30,35,255);
                 SDL_RenderFillRect(renderer, &rect);
             }
         }
@@ -115,15 +108,13 @@ void Board::renderBoard(SDL_Renderer* renderer)
 
 int Board::checkNextSpace(int colIndex, int rowIndex, Square color, int colDelta, int rowDelta, int count)
 {
-    if (colIndex+colDelta < 0 || colIndex+colDelta > 14 ||
-        rowIndex+rowDelta < 0 || rowIndex+rowDelta > 14)
-        return count;
-
-    if (boardState[colIndex+colDelta][rowIndex+rowDelta] == color)
+    int cx = colIndex + colDelta, cy = rowIndex + rowDelta;
+    if (cx < 0 || cx >= 15 || cy < 0 || cy >= 15) return count;
+    if (boardState[cx][cy] == color)
     {
         count++;
         if (count >= 5) return count;
-        return checkNextSpace(colIndex+colDelta, rowIndex+rowDelta, color, colDelta, rowDelta, count);
+        return checkNextSpace(cx, cy, color, colDelta, rowDelta, count);
     }
     return count;
 }
@@ -136,59 +127,79 @@ bool Board::checkBothDirections(int colIndex, int rowIndex, Square color, int co
 
 Square Board::informedWinState(int colIndex, int rowIndex, Square color)
 {
-    if (checkBothDirections(colIndex, rowIndex, color, -1, 0) ||
-        checkBothDirections(colIndex, rowIndex, color, 0, 1)  ||
-        checkBothDirections(colIndex, rowIndex, color, -1, 1) ||
-        checkBothDirections(colIndex, rowIndex, color, 1, 1))
+    if (checkBothDirections(colIndex, rowIndex, color, 1, 0) ||
+        checkBothDirections(colIndex, rowIndex, color, 0, 1) ||
+        checkBothDirections(colIndex, rowIndex, color, 1, 1) ||
+        checkBothDirections(colIndex, rowIndex, color, 1, -1))
     {
         return color;
     }
     return EMPTY;
 }
 
-// 新增：蒙特卡洛模拟逻辑
+std::vector<std::pair<int,int>> Board::collectEmptyPositions()
+{
+    std::vector<std::pair<int,int>> empties;
+    for (int i = 0; i < 15; ++i)
+        for (int j = 0; j < 15; ++j)
+            if (boardState[i][j] == EMPTY)
+                empties.emplace_back(i, j);
+    return empties;
+}
+
 std::pair<int,int> Board::simulateGames(int simulations)
 {
-    int blackWins = 0;
-    int whiteWins = 0;
-
+    int blackWins = 0, whiteWins = 0;
     for (int i = 0; i < simulations; ++i)
     {
-        Board simBoard = *this;
-        if (simBoard.getWinner() != EMPTY)
-        {
-            if (simBoard.getWinner() == BLACK) blackWins++;
-            else whiteWins++;
-            continue;
-        }
-
-        // 收集空格
-        std::vector<std::pair<int,int>> empties;
-        for (int x = 0; x < 15; ++x)
-            for (int y = 0; y < 15; ++y)
-                if (simBoard.isOpenSpot(x, y))
-                    empties.emplace_back(x, y);
-
+        Board sim = *this;
+        auto empties = sim.collectEmptyPositions();
         int moves = 0;
-        while (!empties.empty() && moves < 100 && simBoard.getWinner() == EMPTY)
+        while (!empties.empty() && moves < 100 && sim.getWinner() == EMPTY)
         {
             int idx = rand() % empties.size();
-            int cx = empties[idx].first, cy = empties[idx].second;
-            simBoard.putPiece(cx, cy);
-            Square win = simBoard.informedWinState(cx, cy, simBoard.getCurrentPlayer());
-            if (win != EMPTY)
+            auto [x, y] = empties[idx];
+            sim.putPiece(x, y);
+            if (sim.informedWinState(x, y, sim.getCurrentPlayer()) != EMPTY)
             {
-                if (win == BLACK) blackWins++;
-                else whiteWins++;
+                sim.getCurrentPlayer() == BLACK ? ++blackWins : ++whiteWins;
                 break;
             }
-            simBoard.switchPlayers();
-            empties[idx] = empties.back();
-            empties.pop_back();
-            moves++;
+            sim.switchPlayers();
+            empties.erase(empties.begin() + idx);
+            ++moves;
         }
-        // 平局不计入
+    }
+    return {blackWins, whiteWins};
+}
+
+std::pair<int,int> Board::findBestMove(int simulations)
+{
+    auto empties = collectEmptyPositions();
+    if (empties.empty()) return {-1, -1};
+
+    double bestPct = -1.0;
+    std::pair<int,int> bestMove = empties[0];
+
+    for (auto [x, y] : empties)
+    {
+        Board sim = *this;
+        // 白方先下
+        sim.putPiece(x, y);
+        // 立即胜出
+        if (sim.informedWinState(x, y, WHITE) == WHITE)
+            return {x, y};
+
+        sim.switchPlayers();
+        auto [bWins, wWins] = sim.simulateGames(simulations);
+        int total = bWins + wWins;
+        double pct = (total > 0) ? double(wWins) / total : 0.0;
+        if (pct > bestPct)
+        {
+            bestPct = pct;
+            bestMove = {x, y};
+        }
     }
 
-    return std::make_pair(blackWins, whiteWins);
+    return bestMove;
 }

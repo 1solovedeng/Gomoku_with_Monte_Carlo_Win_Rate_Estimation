@@ -1,4 +1,4 @@
-# Gomoku with Monte Carlo Win Rate Estimation
+# 蒙特卡洛算法实现AI五子棋对弈(Gomoku AI with Monte Carlo Simulation)
 
 源项目：[https://github.com/lxie27/Gomoku](https://github.com/lxie27/Gomoku)
 
@@ -8,7 +8,7 @@
 
 ## 功能
 
-- **下五子棋**：在 15×15 棋盘上两个玩家轮流点击鼠标左键落子。  
+- **下五子棋**：在 15×15 棋盘上玩家点击鼠标左键落子。  
 - **蒙特卡洛胜率估算**：每次落子后立即在控制台输出：
   ```
   这一步后的蒙特卡洛模拟胜率: 黑: xx%, 白: yy%
@@ -47,6 +47,14 @@ brew install cmake sdl2 sdl2_image sdl2_mixer sdl2_ttf
 2. 下载并解压 SDL2、SDL2_image、SDL2_mixer、SDL2_ttf 的 MSVC 版本。  
 3. 将 SDL 主文件夹的 `include` 与 `lib\x64` 路径添加到系统环境变量 `PATH`。  
 
+---
+## 更新时间：2025/5/22
+1. 添加 AI：使用蒙特卡洛模拟 200 局，选择最高胜率位置落子。
+![与AI对弈演示图](https://res.cloudinary.com/ddacx9czn/image/upload/v1747917253/08771634-f5e2-42f4-9a71-3f9198f9a70d.png)
+* 与AI对弈演示图
+2. 添加黑棋走子后流程：黑棋(玩家)落子 → 界面刷新 → 控制台打印“白棋 AI 正在思考...” → 延迟后显示白棋 AI 落子位置。
+![对应的控制台内容](https://res.cloudinary.com/ddacx9czn/image/upload/v1747917361/3169b4fc-a63d-4dba-9075-2bc384d35672.png)
+* 对应的控制台内容图
 ---
 
 欢迎 Fork 与 Star！

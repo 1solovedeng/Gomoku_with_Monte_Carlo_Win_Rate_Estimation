@@ -45,7 +45,6 @@ set(SOURCES
     SDLProject/main.cpp
     SDLProject/Board.cpp
     SDLProject/Game.cpp
-    #SDLProject/WinRateCalculator.cpp
 )
 
 # 生成可执行文件

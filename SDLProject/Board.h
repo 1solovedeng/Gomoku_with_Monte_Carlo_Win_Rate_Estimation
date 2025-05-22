@@ -1,7 +1,7 @@
 #pragma once
 #include "SDL.h"
 #include <vector>
-#include <utility>  // 为 std::pair
+#include <utility>
 
 enum Square
 {
@@ -29,11 +29,16 @@ public:
     bool checkBothDirections(int colIndex, int rowIndex, Square color, int colDelta, int rowDelta);
     Square informedWinState(int colIndex, int rowIndex, Square color);
 
-    // 蒙特卡洛模拟函数，返回{黑方胜利次数, 白方胜利次数}
+    // 蒙特卡洛模拟函数：返回 {黑胜局数, 白胜局数}
     std::pair<int,int> simulateGames(int simulations);
 
+    // 收集所有空位坐标
+    std::vector<std::pair<int,int>> collectEmptyPositions();
+
+    // Monte Carlo 选点：在每个空位先下白子，再模拟，返回最优落点
+    std::pair<int,int> findBestMove(int simulations);
+
 private:
-    // 当前玩家，默认为 BLACK
     Square currentPlayer = BLACK;
     Square boardState[15][15] = { EMPTY };
     Square winner = EMPTY;
